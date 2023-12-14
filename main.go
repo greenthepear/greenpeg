@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -20,12 +19,13 @@ type ffmpegOp struct {
 	preset       string
 	custom       string
 	customBefore string
+	ext          string
 }
 
 func globFilenames(pattern string) ([]string, error) {
 	r, err := filepath.Glob(pattern)
 	if len(r) == 0 {
-		return nil, errors.New("no files matching pattern")
+		return nil, fmt.Errorf("no files matching pattern")
 	}
 	return r, err
 }
@@ -96,18 +96,10 @@ func main() {
 	//3. ask to start (unless -y)
 	//4. run
 	//ffmpeg -i input.mp4 -vcodec libx265 -crf 28 output.mp4
+
 	op := ffmpegOp{}
 
-	flag.StringVar(&op.iname, "iname", "", "pattern of input files (e.g. './2023*.mp4')")
-	flag.StringVar(&op.oprefix, "oprefix", "ENC_", "prefix of the name of converted files")
-	flag.StringVar(&op.osuffix, "osuffix", "", "suffix of the name of converted files")
-	flag.StringVar(&op.from, "from", "", "like -ss, use hh:mm:ss formatting, enables -c copy")
-	flag.StringVar(&op.to, "to", "", "like -to, use hh:mm:ss formatting, enables -c copy")
-	flag.StringVar(&op.vcodec, "vcodec", "", "same as ffmpeg, libx265 recommended")
-	flag.IntVar(&op.crf, "crf", -1, "same as ffmpeg")
-	flag.StringVar(&op.preset, "preset", "", "run custom preset, see presets with `greenpeg presets`, any overlapping flag will overwrite the preset")
-	flag.StringVar(&op.custom, "custom", "", "custom options that will be appended AFTER -i")
-	flag.StringVar(&op.customBefore, "custom_b", "", "custom options that will be added BEFORE -i")
+	getOptionsFromFlags(&op)
 
 	flag.Parse()
 	filenames, err := globFilenames(op.iname)
