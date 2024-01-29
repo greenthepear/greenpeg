@@ -11,7 +11,5 @@ func getOptionsFromFlags(op *ffmpegOp) {
 	flag.StringVar(&op.vcodec, "vcodec", "", "same as ffmpeg, libx265 recommended")
 	flag.IntVar(&op.crf, "crf", -1, "same as ffmpeg")
 	flag.StringVar(&op.preset, "preset", "", "run custom preset, see presets with `greenpeg presets`, any overlapping flag will overwrite the preset")
-	flag.StringVar(&op.custom, "custom", "", "custom options that will be appended AFTER -i")
-	flag.StringVar(&op.customBefore, "custom_b", "", "custom options that will be added BEFORE -i")
 	flag.StringVar(&op.ext, "ext", "", "file extension, aka container format, leave to keep the same as input file")
 }

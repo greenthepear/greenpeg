@@ -11,16 +11,14 @@ import (
 const displayCommandsLimit = 5
 
 type ffmpegOp struct {
-	iname        string
-	oprefix      string
-	osuffix      string
-	from, to     string
-	vcodec       string
-	crf          int
-	preset       string
-	custom       string
-	customBefore string
-	ext          string
+	iname    string
+	oprefix  string
+	osuffix  string
+	from, to string
+	vcodec   string
+	crf      int
+	preset   string
+	ext      string
 }
 
 func globFilenames(pattern string) ([]string, error) {
@@ -32,12 +30,6 @@ func globFilenames(pattern string) ([]string, error) {
 }
 
 func main() {
-	//1. check flags
-	//2. give info of files
-	//3. ask to start (unless -y)
-	//4. run
-	//ffmpeg -i input.mp4 -vcodec libx265 -crf 28 output.mp4
-
 	op := ffmpegOp{}
 
 	getOptionsFromFlags(&op)
@@ -51,17 +43,20 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Found %d files from iname: %v\nGenerating command strings...\n", len(filenames), filenames)
+	fmt.Printf("Found %d files from iname: %v\n\nGenerating commands...\n", len(filenames), filenames)
 
-	commandStrings := createCommandStrings(filenames, op, false)
+	commands, err := createCommands(filenames, op, false)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	fmt.Printf("\nThe following %d commands will be executed:\n", len(commandStrings))
-	for i, c := range commandStrings {
-		if i > displayCommandsLimit {
-			fmt.Printf("... and %d more.\n", len(commandStrings)-displayCommandsLimit)
+	fmt.Printf("The following %d commands will be executed:\n", len(commands))
+	for i, c := range commands {
+		if i >= displayCommandsLimit {
+			fmt.Printf("... and %d more.\n", len(commands)-displayCommandsLimit)
 			break
 		}
-		fmt.Printf("%s\n", c)
+		fmt.Printf("%s\n", c.String())
 	}
 
 	confirm := ""
@@ -80,5 +75,14 @@ func main() {
 			break
 		}
 		fmt.Printf("Invalid input.\n")
+	}
+
+	for i, c := range commands {
+		fmt.Printf("████ [%d/%d] ████\nRunning `%s`...\n", i+1, len(commands), c.String())
+		out, err := c.CombinedOutput()
+		if err != nil {
+			log.Fatalf("Error while running command: %s\n%s", err, out)
+		}
+		fmt.Printf("▒▒▒▒ Finished successfully. Output:\n%s\n", out)
 	}
 }

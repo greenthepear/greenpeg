@@ -1,11 +1,11 @@
 **greenpeg** is a simple CLI wrapper for FFmpeg made to make mass conversion easy on any platform. Using Go flags and presets it makes using FFmpeg less about googling commands and more about getting conversions done.
 
 # Build
-If you have [Go](https://go.dev/doc/install), [FFmpeg](https://www.ffmpeg.org/download.html) and git:
+Get [Go](https://go.dev/doc/install) and:
 
-    git clone https://github.com/greenthepear/greenpeg
-    cd greenpeg
     go build
+
+Obviously you also need [FFmpeg](https://www.ffmpeg.org/download.html), which is included in your path.
 
 # Running
 Check flags with `greenpeg -h`.
