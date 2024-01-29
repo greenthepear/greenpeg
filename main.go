@@ -4,10 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
 )
+
+const displayCommandsLimit = 5
 
 type ffmpegOp struct {
 	iname        string
@@ -30,76 +31,6 @@ func globFilenames(pattern string) ([]string, error) {
 	return r, err
 }
 
-func createCommandString(filename string, options ffmpegOp) (string, error) {
-	beforei := " "
-	needsCopy := false
-
-	//Before -i
-	if options.from != "" {
-		if !regexp.MustCompile(`\d\d:\d\d:\d\d`).MatchString(options.from) {
-			return "", fmt.Errorf("bad time format (not hh:mm:ss) for -from: %s", options.from)
-		}
-		needsCopy = true
-		//beforei = fmt.Sprintf("%s-ss %s ", beforei, options.from)
-		beforei = beforei + "-ss " + options.from
-	}
-
-	if options.to != "" {
-		if !regexp.MustCompile(`\d\d:\d\d:\d\d`).MatchString(options.to) {
-			return "", fmt.Errorf("bad time format (not hh:mm:ss) for -to: %s ", options.to)
-		}
-		needsCopy = true
-		//beforei = fmt.Sprintf("%s-to %s ", beforei, options.from)
-		beforei = beforei + "-to " + options.to
-	}
-
-	if options.customBefore != "" {
-		beforei += " " + options.customBefore
-	}
-
-	if beforei != " " {
-		beforei = beforei + " "
-	}
-
-	afteri := ""
-
-	//After -i
-	if options.vcodec != "" {
-		//afteri = fmt.Sprintf("%s-vcodec %s ", afteri, options.vcodec)
-		afteri = afteri + " -vcodec " + options.vcodec
-	}
-
-	if options.crf != -1 {
-		if options.crf < 0 || options.crf > 51 {
-			return "", fmt.Errorf("bad crf option, needs to be between 0 and 51, not: %d", options.crf)
-		}
-		afteri = fmt.Sprintf("%s-crf %d ", afteri, options.crf)
-		afteri = afteri + " -crf " + fmt.Sprint(options.crf)
-	}
-
-	if options.custom != "" {
-		afteri = afteri + " " + options.custom
-	}
-
-	if needsCopy {
-		//beforei = fmt.Sprintf("%s-c copy ", beforei)
-		afteri = afteri + " -c copy"
-	}
-
-	//output name
-	ofile := filepath.Base(filename)
-	ofileExt := filepath.Ext(ofile)
-	ofile, _ = strings.CutSuffix(ofile, ofileExt)
-	ofile = options.oprefix + ofile + options.osuffix + ofileExt
-	odir := filepath.Dir(filename)
-	opath := filepath.Join(odir, ofile)
-	if opath == filename {
-		return "", fmt.Errorf("output file name same as input, do you have empty -oprefix and -osuffinx?")
-	}
-
-	return fmt.Sprintf("ffmpeg%s-i %s%s %s", beforei, filename, afteri, opath), nil
-}
-
 func main() {
 	//1. check flags
 	//2. give info of files
@@ -120,11 +51,34 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for i, fname := range filenames {
-		commandstring, err := createCommandString(fname, op)
-		if err != nil {
-			log.Fatalf("Error creating command for `%s`: %v", fname, err)
+	fmt.Printf("Found %d files from iname: %v\nGenerating command strings...\n", len(filenames), filenames)
+
+	commandStrings := createCommandStrings(filenames, op, false)
+
+	fmt.Printf("\nThe following %d commands will be executed:\n", len(commandStrings))
+	for i, c := range commandStrings {
+		if i > displayCommandsLimit {
+			fmt.Printf("... and %d more.\n", len(commandStrings)-displayCommandsLimit)
+			break
 		}
-		fmt.Printf("\t%d: for `%s`:\n$ %s\n", i, fname, commandstring)
+		fmt.Printf("%s\n", c)
+	}
+
+	confirm := ""
+	for {
+		fmt.Printf("Do you wish to execute the commands? [y/n]\n")
+		_, err = fmt.Scan(&confirm)
+		if err != nil {
+			fmt.Printf("Input error: %v\nt", err)
+			continue
+		}
+		if confirm == "N" || confirm == "n" {
+			fmt.Printf("Aborting...\n")
+			os.Exit(0)
+		}
+		if confirm == "Y" || confirm == "y" {
+			break
+		}
+		fmt.Printf("Invalid input.\n")
 	}
 }
